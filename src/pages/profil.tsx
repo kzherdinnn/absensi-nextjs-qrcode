@@ -446,7 +446,7 @@ const DashboardPage: React.FC = () => {
                         tickLine={false}
                         tick={{ fill: '#6b7280', fontSize: 12 }}
                         dy={10}
-                        interval={periode === 'daily' ? 2 : 0}
+                        interval={periode === 'daily' ? 3 : periode === 'monthly' ? 4 : 0}
                       />
                       <YAxis
                         axisLine={false}
