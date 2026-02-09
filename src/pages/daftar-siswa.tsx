@@ -20,12 +20,20 @@ import {
   useTheme,
   Grid,
   Stack,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import Layout from '@/components/Layout';
 import { useRouter } from 'next/router';
 import { useSelector } from 'react-redux';
-import { semuaSiswa } from '@/services/siswaApi';
+import { semuaSiswa, updateSiswa, hapusSiswa } from '@/services/siswaApi';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EditIcon from '@mui/icons-material/Edit';
@@ -37,6 +45,7 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserProfile {
+  _id: string;
   nama: string;
   email: string;
   peran: string;
@@ -50,6 +59,55 @@ function DaftarSiswa() {
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // New State for Edit/Delete
+  const [openEdit, setOpenEdit] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [editForm, setEditForm] = useState({ nama: '', email: '', peran: '', password: '' });
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+
+  const handleEditClick = (user: UserProfile) => {
+    setSelectedUser(user);
+    setEditForm({ nama: user.nama, email: user.email, peran: user.peran, password: '' });
+    setOpenEdit(true);
+  };
+
+  const handleDeleteClick = (user: UserProfile) => {
+    setSelectedUser(user);
+    setOpenDelete(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedUser) return;
+    setEditLoading(true);
+    try {
+      await updateSiswa(selectedUser._id, editForm.nama, editForm.email, editForm.password || undefined, editForm.peran);
+      setOpenEdit(false);
+      ambilData(); // Refresh data
+    } catch (error) {
+      console.error('Gagal update siswa:', error);
+      alert('Gagal update siswa');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedUser) return;
+    setDeleteLoading(true);
+    try {
+      await hapusSiswa(selectedUser._id);
+      setOpenDelete(false);
+      ambilData(); // Refresh data
+    } catch (error) {
+      console.error('Gagal hapus siswa:', error);
+      alert('Gagal hapus siswa');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const data = useSelector((state: any) => state.data.data);
   const router = useRouter();
@@ -319,6 +377,7 @@ function DaftarSiswa() {
                         <Tooltip title="Edit">
                           <IconButton
                             size="small"
+                            onClick={() => handleEditClick(Siswa)}
                             sx={{ color: theme.palette.info.main, '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.1)' } }}
                           >
                             <EditIcon />
@@ -327,6 +386,7 @@ function DaftarSiswa() {
                         <Tooltip title="Hapus">
                           <IconButton
                             size="small"
+                            onClick={() => handleDeleteClick(Siswa)}
                             sx={{ color: theme.palette.error.main, '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
                           >
                             <DeleteIcon />
@@ -359,6 +419,67 @@ function DaftarSiswa() {
             />
           </Box>
         </Paper>
+
+        {/* Edit Dialog */}
+        <Dialog open={openEdit} onClose={() => setOpenEdit(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Edit Siswa</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField
+                label="Nama Lengkap"
+                fullWidth
+                value={editForm.nama}
+                onChange={(e) => setEditForm({ ...editForm, nama: e.target.value })}
+              />
+              <TextField
+                label="Email"
+                fullWidth
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+              <FormControl fullWidth>
+                <InputLabel>Peran</InputLabel>
+                <Select
+                  value={editForm.peran}
+                  label="Peran"
+                  onChange={(e) => setEditForm({ ...editForm, peran: e.target.value as string })}
+                >
+                  <MenuItem value="admin">Administrator</MenuItem>
+                  <MenuItem value="Siswa">Siswa</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField
+                label="Password Baru (Kosongkan jika tidak diubah)"
+                type="password"
+                fullWidth
+                value={editForm.password}
+                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenEdit(false)}>Batal</Button>
+            <Button onClick={handleUpdate} variant="contained" disabled={editLoading}>
+              {editLoading ? <CircularProgress size={24} /> : 'Simpan'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <Dialog open={openDelete} onClose={() => setOpenDelete(false)}>
+          <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Apakah Anda yakin ingin menghapus <b>{selectedUser?.nama}</b>? Tindakan ini tidak dapat dibatalkan.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDelete(false)}>Batal</Button>
+            <Button onClick={handleDelete} variant="contained" color="error" disabled={deleteLoading}>
+              {deleteLoading ? <CircularProgress size={24} /> : 'Hapus'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Layout>
   );
