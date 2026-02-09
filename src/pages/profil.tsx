@@ -24,8 +24,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import InsertChartIcon from '@mui/icons-material/InsertChart';
 import PersonIcon from '@mui/icons-material/Person';
-import { semuaKehadiran } from '@/services/kehadiranApi';
-import { semuaSiswa } from '@/services/SiswaApi';
+import { semuaKehadiran, statistikKehadiran } from '@/services/kehadiranApi';
+import { semuaSiswa } from '@/services/siswaApi';
 import { ubahTanggal } from '@/services/utils';
 
 // Interfaces based on API usage
@@ -53,6 +53,7 @@ const DashboardPage: React.FC = () => {
   const [recentActivity, setRecentActivity] = useState<Kehadiran[]>([]);
   const [todayStats, setTodayStats] = useState(0);
   const [totalSiswa, setTotalSiswa] = useState(0);
+  const [weeklyStats, setWeeklyStats] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
   const data = useSelector((state: any) => state.data.data);
   const router = useRouter();
@@ -100,10 +101,20 @@ const DashboardPage: React.FC = () => {
             if (resSiswa?.data) {
               // Try to find total count in response, fallback to list length
               const total = resSiswa.totalData || resSiswa.totalDocs || resSiswa.total || resSiswa.data.length;
-              setTotalSiswa(total);
+              setTotalSiswa(total); // Set total siswa for calculations
             }
           } catch (e) {
             console.error("Failed to fetch total Siswa", e);
+          }
+
+          // Fetch Weekly Statistics (Real Data)
+          try {
+            const resStats = await statistikKehadiran(); // New APi call
+            if (resStats?.data && Array.isArray(resStats.data)) {
+              setWeeklyStats(resStats.data);
+            }
+          } catch (e) {
+            console.error("Failed to fetch statistics", e);
           }
         }
       } catch (err) {
@@ -200,7 +211,7 @@ const DashboardPage: React.FC = () => {
                     Halo, {user.nama.includes('@') ? user.nama.split('@')[0] : user.nama}! 👋
                   </Typography>
                   <Typography variant="subtitle1" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                    {isAdmin ? 'Administrator Panel' : 'Employee Dashboard'}
+                    {isAdmin ? 'Panel Administrator' : 'Dashboard Siswa'}
                   </Typography>
 
                   <Box sx={{ mt: 2, display: 'inline-flex', gap: 2 }}>
@@ -347,7 +358,12 @@ const DashboardPage: React.FC = () => {
 
                 <Box sx={{ height: 250, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', px: 2, pb: 2 }}>
                   {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day, i) => {
-                    const height = [40, 65, 85, 50, 90, 30, 20][i]; // Mock data percentages
+                    // Use real data or 0. If totalSiswa is 0, avoid division by zero.
+                    const val = weeklyStats[i] || 0;
+                    const percentage = totalSiswa > 0 ? (val / totalSiswa) * 100 : 0;
+                    // Cap at 100% just in case
+                    const height = Math.min(percentage, 100);
+
                     return (
                       <Box key={day} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flex: 1 }}>
                         <motion.div
@@ -357,13 +373,16 @@ const DashboardPage: React.FC = () => {
                           style={{
                             width: '30%',
                             minWidth: 8,
-                            background: i === 4 ? theme.palette.secondary.main : theme.palette.primary.light,
+                            background: i === (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) ? theme.palette.secondary.main : theme.palette.primary.light,
                             borderRadius: '4px 4px 0 0',
                             opacity: 0.8
                           }}
                         />
                         <Typography variant="caption" color="text.secondary" fontWeight="bold">
                           {day}
+                        </Typography>
+                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
+                          {val}
                         </Typography>
                       </Box>
                     )
@@ -372,7 +391,7 @@ const DashboardPage: React.FC = () => {
 
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(99, 102, 241, 0.05)', borderRadius: 2 }}>
                   <Typography variant="body2" color="text.secondary" align="center">
-                    <strong>Jumat</strong> memiliki tingkat kehadiran tertinggi minggu ini.
+                    <strong>{['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][weeklyStats.indexOf(Math.max(...weeklyStats))]}</strong> memiliki tingkat kehadiran tertinggi minggu ini.
                   </Typography>
                 </Box>
               </Paper>

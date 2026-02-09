@@ -48,8 +48,8 @@ const allMenuItems = [
   { text: 'Kode Datang', href: '/kode/datang', perans: ['admin'] },
   { text: 'Kode Pulang', href: '/kode/pulang', perans: ['admin'] },
   { text: 'Daftar Kehadiran', href: '/daftar-kehadiran', perans: ['admin'] },
-  { text: 'Daftar Siswa', href: '/daftar-Siswa', perans: ['admin'] },
-  { text: 'Registrasi Siswa', href: '/registrasi-Siswa', perans: ['admin'] },
+  { text: 'Daftar Siswa', href: '/daftar-siswa', perans: ['admin'] },
+  { text: 'Registrasi Siswa', href: '/registrasi-siswa', perans: ['admin'] },
   { text: 'Keluar', href: '/login?logout=true', perans: ['admin', 'Siswa'] },
 ];
 

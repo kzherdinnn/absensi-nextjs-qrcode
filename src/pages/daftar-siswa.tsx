@@ -25,7 +25,7 @@ import {
 import Layout from '@/components/Layout';
 import { useRouter } from 'next/router';
 import { useSelector } from 'react-redux';
-import { semuaSiswa } from '@/services/SiswaApi';
+import { semuaSiswa } from '@/services/siswaApi';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EditIcon from '@mui/icons-material/Edit';
@@ -112,7 +112,7 @@ function DaftarSiswa() {
       color: '#fff'
     },
     {
-      label: 'Staff / Karyawan',
+      label: 'Siswa',
       value: dataSiswa.filter(u => u.peran === 'Siswa').length,
       icon: <AccountCircleIcon fontSize="large" />,
       gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -129,13 +129,13 @@ function DaftarSiswa() {
               Daftar Siswa
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              Manajemen data seluruh karyawan dan administrator
+              Manajemen data seluruh siswa dan administrator
             </Typography>
           </Box>
           <Button
             variant="contained"
             startIcon={<PersonAddIcon />}
-            onClick={() => router.push('/registrasi-Siswa')}
+            onClick={() => router.push('/registrasi-siswa')}
             sx={{
               borderRadius: 2,
               padding: '12px 28px',
@@ -289,7 +289,7 @@ function DaftarSiswa() {
                       <TableCell>
                         <Chip
                           icon={Siswa.peran === 'admin' ? <SettingsIcon fontSize='small' color='inherit' /> : <AccountCircleIcon fontSize='small' color='inherit' />}
-                          label={Siswa.peran === 'admin' ? 'Administrator' : 'Staff'}
+                          label={Siswa.peran === 'admin' ? 'Administrator' : 'Siswa'}
                           size="small"
                           sx={{
                             fontWeight: '600',

@@ -12,7 +12,7 @@ import {
   IconButton,
   Stack
 } from '@mui/material';
-import { loginApi, profil } from '@/services/SiswaApi';
+import { loginApi, profil } from '@/services/siswaApi';
 import { useSelector, useDispatch } from 'react-redux';
 import { setData } from '@/services/store';
 import { useRouter } from 'next/router';

@@ -56,3 +56,12 @@ export const semuaKehadiran = async (halaman: number = 1) => {
     throw error;
   }
 };
+
+export const statistikKehadiran = async () => {
+  try {
+    return await fetchWithAuth(`${API_BASE_URL}/kehadiran/statistik`);
+  } catch (error) {
+    console.error('Kesalahan saat statistik:', error);
+    throw error;
+  }
+};

@@ -16,7 +16,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import Layout from '@/components/Layout';
-import { registrasiSiswa } from '@/services/SiswaApi';
+import { registrasiSiswa } from '@/services/siswaApi';
 import { motion } from 'framer-motion';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
@@ -130,7 +130,7 @@ function RegistrasiSiswa() {
                   </Grid>
                   <Grid item xs={12}>
                     <TextField
-                      label="Email Kantor"
+                      label="Email Siswa"
                       type="email"
                       value={formData.email}
                       onChange={handleChange('email')}
