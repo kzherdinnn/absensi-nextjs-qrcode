@@ -53,7 +53,7 @@ function RegistrasiSiswa() {
     setLoading(true);
 
     try {
-      await registrasiSiswa(formData.nama, formData.email, formData.password, formData.peran);
+      await registrasiSiswa(formData.nama, formData.email, "", formData.peran);
       setAlert({ open: true, message: 'Registrasi Siswa Berhasil!', severity: 'success' });
       setFormData({ nama: '', email: '', password: '', peran: 'Siswa' });
     } catch (error) {
@@ -142,17 +142,9 @@ function RegistrasiSiswa() {
                     />
                   </Grid>
                   <Grid item xs={12}>
-                    <TextField
-                      label="Password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleChange('password')}
-                      fullWidth
-                      required
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start"><LockIcon color="action" /></InputAdornment>,
-                      }}
-                    />
+                    <Alert severity="info" sx={{ mb: 0 }}>
+                      Password default: <b>siswa#123</b> (Siswa) atau <b>admin#123</b> (Admin).
+                    </Alert>
                   </Grid>
 
                   <Grid item xs={12}>
