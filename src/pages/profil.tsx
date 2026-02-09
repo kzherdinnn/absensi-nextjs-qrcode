@@ -17,6 +17,16 @@ import {
   ToggleButtonGroup,
   ToggleButton
 } from '@mui/material';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 import Layout from '@/components/Layout';
 import { useRouter } from 'next/router';
 import { useSelector } from 'react-redux';
@@ -44,7 +54,6 @@ interface Aktivitas {
   waktu: string;
   jenis: 'datang' | 'pulang';
 }
-
 
 interface UserProfile {
   nama: string;
@@ -184,6 +193,15 @@ const DashboardPage: React.FC = () => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
   };
+
+  // Prepare Data for Recharts
+  const chartData = statsLabels.map((label, index) => ({
+    name: label,
+    datang: datangStats[index] || 0,
+    pulang: pulangStats[index] || 0,
+    total: (datangStats[index] || 0) + (pulangStats[index] || 0)
+  }));
+
 
   return (
     <Layout>
@@ -366,7 +384,7 @@ const DashboardPage: React.FC = () => {
               </Paper>
             </Grid>
 
-            {/* Weekly Statistics Chart (Mock Visual) */}
+            {/* Weekly Statistics Chart */}
             <Grid item xs={12} md={5}>
               <Paper
                 elevation={0}
@@ -410,37 +428,57 @@ const DashboardPage: React.FC = () => {
                   </ToggleButton>
                 </ToggleButtonGroup>
 
-                <Box sx={{ height: 250, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', px: 2, pb: 2 }}>
-                  {statsLabels.map((label, i) => {
-                    const val = weeklyStats[i] || 0;
-                    const percentage = totalSiswa > 0 ? (val / totalSiswa) * 100 : 0;
-                    const height = Math.min(percentage, 100);
-
-                    return (
-                      <Box key={label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flex: 1 }}>
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${height}%` }}
-                          transition={{ duration: 1, delay: i * 0.1 }}
-                          style={{
-                            width: '30%',
-                            minWidth: 8,
-                            background: i === (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) && periode === 'weekly'
-                              ? theme.palette.secondary.main
-                              : theme.palette.primary.light,
-                            borderRadius: '4px 4px 0 0',
-                            opacity: 0.8
-                          }}
-                        />
-                        <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ fontSize: periode === 'daily' ? '0.55rem' : '0.7rem' }}>
-                          {label}
-                        </Typography>
-                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-                          {val}
-                        </Typography>
-                      </Box>
-                    )
-                  })}
+                <Box sx={{ height: 300, width: '100%', mt: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={chartData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 0,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                        dy={10}
+                        interval={periode === 'daily' ? 2 : 0}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          borderRadius: '8px',
+                          border: 'none',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                        }}
+                        cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                      <Bar
+                        dataKey="datang"
+                        name="Datang"
+                        fill="#10b981"
+                        radius={[4, 4, 0, 0]}
+                        barSize={periode === 'daily' ? 8 : 20}
+                      />
+                      <Bar
+                        dataKey="pulang"
+                        name="Pulang"
+                        fill="#ef4444"
+                        radius={[4, 4, 0, 0]}
+                        barSize={periode === 'daily' ? 8 : 20}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </Box>
 
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(99, 102, 241, 0.05)', borderRadius: 2 }}>
