@@ -93,11 +93,7 @@ const DashboardPage: React.FC = () => {
   // Load Recent Activity
   useEffect(() => {
     const fetchRecent = async () => {
-      // Only admin can see all attendance
-      if (!user || user.peran !== 'admin') {
-        setRecentActivity([]);
-        return;
-      }
+      if (!user) return;
 
       try {
         // Gunakan API baru untuk aktivitas terbaru
@@ -112,15 +108,17 @@ const DashboardPage: React.FC = () => {
           ).length;
           setTodayStats(count);
 
-          // Fetch Total Siswa (Real Data)
-          try {
-            const resSiswa = await semuaSiswa(1);
-            if (resSiswa?.data) {
-              const total = resSiswa.totalData || resSiswa.totalDocs || resSiswa.total || resSiswa.data.length;
-              setTotalSiswa(total);
+          // Fetch Total Siswa (Real Data) - Only Admin
+          if (user.peran === 'admin') {
+            try {
+              const resSiswa = await semuaSiswa(1);
+              if (resSiswa?.data) {
+                const total = resSiswa.totalData || resSiswa.totalDocs || resSiswa.total || resSiswa.data.length;
+                setTotalSiswa(total);
+              }
+            } catch (e) {
+              console.error("Failed to fetch total Siswa", e);
             }
-          } catch (e) {
-            console.error("Failed to fetch total Siswa", e);
           }
         }
       } catch (err) {
@@ -136,7 +134,7 @@ const DashboardPage: React.FC = () => {
   // Load Statistics based on periode
   useEffect(() => {
     const fetchStats = async () => {
-      if (!user || user.peran !== 'admin') return;
+      if (!user) return;
 
       try {
         const resStats = await statistikKehadiran(periode);
