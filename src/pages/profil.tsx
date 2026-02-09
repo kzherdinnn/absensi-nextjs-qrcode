@@ -13,7 +13,9 @@ import {
   ListItemText,
   Divider,
   useTheme,
-  Chip
+  Chip,
+  ToggleButtonGroup,
+  ToggleButton
 } from '@mui/material';
 import Layout from '@/components/Layout';
 import { useRouter } from 'next/router';
@@ -24,7 +26,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import InsertChartIcon from '@mui/icons-material/InsertChart';
 import PersonIcon from '@mui/icons-material/Person';
-import { semuaKehadiran, statistikKehadiran } from '@/services/kehadiranApi';
+import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { statistikKehadiran, aktivitasTerbaru } from '@/services/kehadiranApi';
 import { semuaSiswa } from '@/services/siswaApi';
 import { ubahTanggal } from '@/services/utils';
 
@@ -38,7 +42,7 @@ interface Kehadiran {
   _id: string;
   Siswa: Siswa;
   datang: string;
-  pulang: string;
+  pulang?: string;
 }
 
 interface UserProfile {
@@ -54,6 +58,10 @@ const DashboardPage: React.FC = () => {
   const [todayStats, setTodayStats] = useState(0);
   const [totalSiswa, setTotalSiswa] = useState(0);
   const [weeklyStats, setWeeklyStats] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [datangStats, setDatangStats] = useState<number[]>([]);
+  const [pulangStats, setPulangStats] = useState<number[]>([]);
+  const [statsLabels, setStatsLabels] = useState<string[]>(['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']);
+  const [periode, setPeriode] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
 
   const data = useSelector((state: any) => state.data.data);
   const router = useRouter();
@@ -82,16 +90,15 @@ const DashboardPage: React.FC = () => {
       }
 
       try {
-        const res = await semuaKehadiran(1);
-        if (res?.kehadiran) {
-          // Take top 5
-          setRecentActivity(res.kehadiran.slice(0, 5));
+        // Gunakan API baru untuk aktivitas terbaru
+        const res = await aktivitasTerbaru(10);
+        if (res?.data) {
+          setRecentActivity(res.data);
 
-          // Calculate today's stats from page 1 (Real Data)
+          // Calculate today's stats
           const todayStr = new Date().toDateString();
-          const count = res.kehadiran.filter((k: any) =>
-            new Date(k.datang).toDateString() === todayStr ||
-            (k.pulang && new Date(k.pulang).toDateString() === todayStr)
+          const count = res.data.filter((k: any) =>
+            new Date(k.datang).toDateString() === todayStr
           ).length;
           setTodayStats(count);
 
@@ -99,22 +106,11 @@ const DashboardPage: React.FC = () => {
           try {
             const resSiswa = await semuaSiswa(1);
             if (resSiswa?.data) {
-              // Try to find total count in response, fallback to list length
               const total = resSiswa.totalData || resSiswa.totalDocs || resSiswa.total || resSiswa.data.length;
-              setTotalSiswa(total); // Set total siswa for calculations
+              setTotalSiswa(total);
             }
           } catch (e) {
             console.error("Failed to fetch total Siswa", e);
-          }
-
-          // Fetch Weekly Statistics (Real Data)
-          try {
-            const resStats = await statistikKehadiran(); // New APi call
-            if (resStats?.data && Array.isArray(resStats.data)) {
-              setWeeklyStats(resStats.data);
-            }
-          } catch (e) {
-            console.error("Failed to fetch statistics", e);
           }
         }
       } catch (err) {
@@ -126,6 +122,30 @@ const DashboardPage: React.FC = () => {
       fetchRecent();
     }
   }, [user]);
+
+  // Load Statistics based on periode
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user || user.peran !== 'admin') return;
+
+      try {
+        const resStats = await statistikKehadiran(periode);
+        if (resStats?.data && Array.isArray(resStats.data)) {
+          setWeeklyStats(resStats.data);
+          setDatangStats(resStats.datang || []);
+          setPulangStats(resStats.pulang || []);
+          setStatsLabels(resStats.labels || []);
+        }
+      } catch (e) {
+        console.error("Failed to fetch statistics", e);
+      }
+    };
+
+    if (user) {
+      fetchStats();
+    }
+  }, [user, periode]);
+
 
   if (loading) {
     return (
@@ -314,17 +334,40 @@ const DashboardPage: React.FC = () => {
                               </Typography>
                             }
                             secondary={
-                              <Typography variant="body2" color="text.secondary">
-                                {activity.pulang ? `Pulang pada ${ubahTanggal(activity.pulang)}` : `Datang pada ${ubahTanggal(activity.datang)}`}
-                              </Typography>
+                              <Box sx={{ mt: 0.5 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                                  <LoginIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    Datang: {ubahTanggal(activity.datang)}
+                                  </Typography>
+                                </Box>
+                                {activity.pulang && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <LogoutIcon sx={{ fontSize: 14, color: 'error.main' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      Pulang: {ubahTanggal(activity.pulang)}
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
                             }
                           />
-                          <Chip
-                            label={activity.pulang ? "Pulang" : "Masuk"}
-                            size="small"
-                            color={activity.pulang ? "error" : "success"}
-                            sx={{ borderRadius: 1, fontWeight: 'bold', height: 24 }}
-                          />
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Chip
+                              label="Masuk"
+                              size="small"
+                              color="success"
+                              sx={{ borderRadius: 1, fontWeight: 'bold', height: 24 }}
+                            />
+                            {activity.pulang && (
+                              <Chip
+                                label="Pulang"
+                                size="small"
+                                color="error"
+                                sx={{ borderRadius: 1, fontWeight: 'bold', height: 24 }}
+                              />
+                            )}
+                          </Box>
                         </ListItem>
                         {index < recentActivity.length - 1 && <Divider component="li" />}
                       </React.Fragment>
@@ -351,21 +394,45 @@ const DashboardPage: React.FC = () => {
                   background: 'linear-gradient(180deg, #ffffff 0%, #f9fafb 100%)'
                 }}
               >
-                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <InsertChartIcon color="primary" />
-                  <Typography variant="h6" fontWeight="bold">Statistik Mingguan</Typography>
+                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <InsertChartIcon color="primary" />
+                    <Typography variant="h6" fontWeight="bold">
+                      Statistik {periode === 'daily' ? 'Harian' : periode === 'weekly' ? 'Mingguan' : 'Bulanan'}
+                    </Typography>
+                  </Box>
                 </Box>
 
+                <ToggleButtonGroup
+                  value={periode}
+                  exclusive
+                  onChange={(e, newPeriode) => {
+                    if (newPeriode !== null) {
+                      setPeriode(newPeriode);
+                    }
+                  }}
+                  size="small"
+                  sx={{ mb: 2, width: '100%' }}
+                >
+                  <ToggleButton value="daily" sx={{ flex: 1 }}>
+                    Harian
+                  </ToggleButton>
+                  <ToggleButton value="weekly" sx={{ flex: 1 }}>
+                    Mingguan
+                  </ToggleButton>
+                  <ToggleButton value="monthly" sx={{ flex: 1 }}>
+                    Bulanan
+                  </ToggleButton>
+                </ToggleButtonGroup>
+
                 <Box sx={{ height: 250, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', px: 2, pb: 2 }}>
-                  {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day, i) => {
-                    // Use real data or 0. If totalSiswa is 0, avoid division by zero.
+                  {statsLabels.map((label, i) => {
                     const val = weeklyStats[i] || 0;
                     const percentage = totalSiswa > 0 ? (val / totalSiswa) * 100 : 0;
-                    // Cap at 100% just in case
                     const height = Math.min(percentage, 100);
 
                     return (
-                      <Box key={day} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flex: 1 }}>
+                      <Box key={label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flex: 1 }}>
                         <motion.div
                           initial={{ height: 0 }}
                           animate={{ height: `${height}%` }}
@@ -373,13 +440,15 @@ const DashboardPage: React.FC = () => {
                           style={{
                             width: '30%',
                             minWidth: 8,
-                            background: i === (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) ? theme.palette.secondary.main : theme.palette.primary.light,
+                            background: i === (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) && periode === 'weekly'
+                              ? theme.palette.secondary.main
+                              : theme.palette.primary.light,
                             borderRadius: '4px 4px 0 0',
                             opacity: 0.8
                           }}
                         />
-                        <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                          {day}
+                        <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ fontSize: periode === 'daily' ? '0.55rem' : '0.7rem' }}>
+                          {label}
                         </Typography>
                         <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
                           {val}
@@ -390,8 +459,29 @@ const DashboardPage: React.FC = () => {
                 </Box>
 
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(99, 102, 241, 0.05)', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 1 }}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">Total Datang</Typography>
+                      <Typography variant="h6" fontWeight="bold" color="success.main">
+                        {datangStats.reduce((a, b) => a + b, 0)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">Total Pulang</Typography>
+                      <Typography variant="h6" fontWeight="bold" color="error.main">
+                        {pulangStats.reduce((a, b) => a + b, 0)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
                   <Typography variant="body2" color="text.secondary" align="center">
-                    <strong>{['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][weeklyStats.indexOf(Math.max(...weeklyStats))]}</strong> memiliki tingkat kehadiran tertinggi minggu ini.
+                    {weeklyStats.length > 0 && weeklyStats.some(v => v > 0) ? (
+                      <>
+                        <strong>{statsLabels[weeklyStats.indexOf(Math.max(...weeklyStats))]}</strong> memiliki tingkat kehadiran tertinggi.
+                      </>
+                    ) : (
+                      'Belum ada data kehadiran.'
+                    )}
                   </Typography>
                 </Box>
               </Paper>

@@ -57,11 +57,21 @@ export const semuaKehadiran = async (halaman: number = 1) => {
   }
 };
 
-export const statistikKehadiran = async () => {
+export const statistikKehadiran = async (periode: 'daily' | 'weekly' | 'monthly' = 'weekly') => {
   try {
-    return await fetchWithAuth(`${API_BASE_URL}/kehadiran/statistik`);
+    return await fetchWithAuth(`${API_BASE_URL}/kehadiran/statistik?periode=${periode}`);
   } catch (error) {
     console.error('Kesalahan saat statistik:', error);
     throw error;
   }
 };
+
+export const aktivitasTerbaru = async (limit: number = 10) => {
+  try {
+    return await fetchWithAuth(`${API_BASE_URL}/kehadiran/aktivitas-terbaru?limit=${limit}`);
+  } catch (error) {
+    console.error('Kesalahan saat mengambil aktivitas terbaru:', error);
+    throw error;
+  }
+};
+
