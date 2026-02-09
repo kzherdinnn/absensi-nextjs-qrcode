@@ -30,6 +30,7 @@ const AbsensiScanner: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [mountSafe, setMountSafe] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
@@ -141,6 +142,7 @@ const AbsensiScanner: React.FC = () => {
   };
 
   useEffect(() => {
+    setMountSafe(true);
     return () => {
       stopScanner();
     };
@@ -217,7 +219,7 @@ const AbsensiScanner: React.FC = () => {
                   Gunakan kamera perangkat Anda untuk memindai QR Code kehadiran.
                 </Typography>
 
-                {!window.isSecureContext && window.location.hostname !== 'localhost' && (
+                {mountSafe && typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && (
                   <Alert severity="warning" icon={<SecurityIcon />} sx={{ mb: 3, borderRadius: 2 }}>
                     Akses kamera memerlukan HTTPS.
                   </Alert>
