@@ -15,7 +15,14 @@ import {
   useTheme,
   Chip,
   ToggleButtonGroup,
-  ToggleButton
+  ToggleButton,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Stack
 } from '@mui/material';
 import {
   BarChart,
@@ -39,8 +46,9 @@ import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { statistikKehadiran, aktivitasTerbaru } from '@/services/kehadiranApi';
-import { semuaSiswa } from '@/services/siswaApi';
+import { semuaSiswa, updateSiswa } from '@/services/siswaApi';
 import { ubahTanggal } from '@/services/utils';
+import EditIcon from '@mui/icons-material/Edit';
 
 // Interfaces based on API usage
 interface Siswa {
@@ -56,6 +64,7 @@ interface Aktivitas {
 }
 
 interface UserProfile {
+  _id: string;
   nama: string;
   email: string;
   peran: string;
@@ -72,6 +81,26 @@ const DashboardPage: React.FC = () => {
   const [pulangStats, setPulangStats] = useState<number[]>([]);
   const [statsLabels, setStatsLabels] = useState<string[]>(['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']);
   const [periode, setPeriode] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ nama: '', email: '', password: '' });
+  const [editLoading, setEditLoading] = useState(false);
+
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+    setEditLoading(true);
+    try {
+      await updateSiswa(user._id, editForm.nama, editForm.email, editForm.password || undefined);
+      setOpenEdit(false);
+      alert('Profil berhasil diperbarui. Silakan login kembali untuk melihat perubahan.');
+      router.push('/login');
+    } catch (e) {
+      console.error(e);
+      alert('Gagal update profil');
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   const data = useSelector((state: any) => state.data.data);
   const router = useRouter();
@@ -244,12 +273,37 @@ const DashboardPage: React.FC = () => {
                   </Avatar>
                 </Grid>
                 <Grid item xs>
-                  <Typography variant="h4" fontWeight="800" sx={{ mb: 0.5, textShadow: '0 2px 4px rgba(0,0,0,0.1)', textTransform: 'capitalize' }}>
-                    Halo, {user.nama.includes('@') ? user.nama.split('@')[0] : user.nama}! 👋
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                    {isAdmin ? 'Panel Administrator' : 'Dashboard Siswa'}
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box>
+                      <Typography variant="h4" fontWeight="800" sx={{ mb: 0.5, textShadow: '0 2px 4px rgba(0,0,0,0.1)', textTransform: 'capitalize' }}>
+                        Halo, {user.nama.includes('@') ? user.nama.split('@')[0] : user.nama}! 👋
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                        {isAdmin ? 'Panel Administrator' : 'Dashboard Siswa'}
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      startIcon={<EditIcon />}
+                      onClick={() => {
+                        setEditForm({ nama: user.nama, email: user.email, password: '' });
+                        setOpenEdit(true);
+                      }}
+                      sx={{
+                        color: 'white',
+                        borderColor: 'rgba(255,255,255,0.5)',
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          borderColor: 'white',
+                          bgcolor: 'rgba(255,255,255,0.1)'
+                        }
+                      }}
+                    >
+                      Edit Profil
+                    </Button>
+                  </Box>
 
                   <Box sx={{ mt: 2, display: 'inline-flex', gap: 2 }}>
                     <Chip
@@ -510,6 +564,45 @@ const DashboardPage: React.FC = () => {
           </Grid>
 
         </motion.div>
+        {/* Edit Profile Dialog */}
+        <Dialog open={openEdit} onClose={() => setOpenEdit(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Edit Profil Saya</DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 2 }}>
+              <TextField
+                label="Nama Lengkap"
+                fullWidth
+                value={editForm.nama}
+                onChange={(e) => setEditForm({ ...editForm, nama: e.target.value })}
+              />
+              <TextField
+                label="Email"
+                type="email"
+                fullWidth
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+              <TextField
+                label="Password Baru (Kosongkan jika tidak diubah)"
+                type="password"
+                fullWidth
+                value={editForm.password}
+                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setOpenEdit(false)}>Batal</Button>
+            <Button
+              onClick={handleUpdateProfile}
+              variant="contained"
+              disabled={editLoading}
+              sx={{ borderRadius: 2 }}
+            >
+              {editLoading ? <CircularProgress size={24} /> : 'Simpan Perubahan'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Layout>
   );
