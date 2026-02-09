@@ -38,12 +38,13 @@ interface Siswa {
   nama: string;
   avatar?: string;
 }
-interface Kehadiran {
+interface Aktivitas {
   _id: string;
   Siswa: Siswa;
-  datang: string;
-  pulang?: string;
+  waktu: string;
+  jenis: 'datang' | 'pulang';
 }
+
 
 interface UserProfile {
   nama: string;
@@ -54,7 +55,7 @@ interface UserProfile {
 const DashboardPage: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [recentActivity, setRecentActivity] = useState<Kehadiran[]>([]);
+  const [recentActivity, setRecentActivity] = useState<Aktivitas[]>([]);
   const [todayStats, setTodayStats] = useState(0);
   const [totalSiswa, setTotalSiswa] = useState(0);
   const [weeklyStats, setWeeklyStats] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
@@ -91,14 +92,14 @@ const DashboardPage: React.FC = () => {
 
       try {
         // Gunakan API baru untuk aktivitas terbaru
-        const res = await aktivitasTerbaru(10);
+        const res = await aktivitasTerbaru(20);
         if (res?.data) {
           setRecentActivity(res.data);
 
           // Calculate today's stats
           const todayStr = new Date().toDateString();
           const count = res.data.filter((k: any) =>
-            new Date(k.datang).toDateString() === todayStr
+            new Date(k.waktu).toDateString() === todayStr
           ).length;
           setTodayStats(count);
 
@@ -161,7 +162,7 @@ const DashboardPage: React.FC = () => {
 
   // Stats Data (Real Data Only)
   const lastUpdate = recentActivity.length > 0
-    ? new Date(recentActivity[0].pulang || recentActivity[0].datang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(recentActivity[0].waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : '--';
 
   const stats = [
@@ -323,7 +324,7 @@ const DashboardPage: React.FC = () => {
                       <React.Fragment key={activity._id}>
                         <ListItem button sx={{ py: 2, px: 3 }}>
                           <ListItemAvatar>
-                            <Avatar sx={{ bgcolor: theme.palette.primary.light }}>
+                            <Avatar sx={{ bgcolor: activity.jenis === 'datang' ? theme.palette.success.light : theme.palette.error.light }}>
                               {activity.Siswa?.nama ? activity.Siswa.nama[0] : '?'}
                             </Avatar>
                           </ListItemAvatar>
@@ -334,40 +335,24 @@ const DashboardPage: React.FC = () => {
                               </Typography>
                             }
                             secondary={
-                              <Box sx={{ mt: 0.5 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                {activity.jenis === 'datang' ? (
                                   <LoginIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                                  <Typography variant="body2" color="text.secondary">
-                                    Datang: {ubahTanggal(activity.datang)}
-                                  </Typography>
-                                </Box>
-                                {activity.pulang && (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <LogoutIcon sx={{ fontSize: 14, color: 'error.main' }} />
-                                    <Typography variant="body2" color="text.secondary">
-                                      Pulang: {ubahTanggal(activity.pulang)}
-                                    </Typography>
-                                  </Box>
+                                ) : (
+                                  <LogoutIcon sx={{ fontSize: 14, color: 'error.main' }} />
                                 )}
+                                <Typography variant="body2" color="text.secondary">
+                                  {activity.jenis === 'datang' ? 'Datang' : 'Pulang'}: {ubahTanggal(activity.waktu)}
+                                </Typography>
                               </Box>
                             }
                           />
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Chip
-                              label="Masuk"
-                              size="small"
-                              color="success"
-                              sx={{ borderRadius: 1, fontWeight: 'bold', height: 24 }}
-                            />
-                            {activity.pulang && (
-                              <Chip
-                                label="Pulang"
-                                size="small"
-                                color="error"
-                                sx={{ borderRadius: 1, fontWeight: 'bold', height: 24 }}
-                              />
-                            )}
-                          </Box>
+                          <Chip
+                            label={activity.jenis === 'datang' ? 'Masuk' : 'Pulang'}
+                            size="small"
+                            color={activity.jenis === 'datang' ? 'success' : 'error'}
+                            sx={{ borderRadius: 1, fontWeight: 'bold', height: 24 }}
+                          />
                         </ListItem>
                         {index < recentActivity.length - 1 && <Divider component="li" />}
                       </React.Fragment>
