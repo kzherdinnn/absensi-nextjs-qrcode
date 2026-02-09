@@ -21,12 +21,15 @@ import { ubahTanggal } from '@/services/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
+import SecurityIcon from '@mui/icons-material/Security';
+import VideoLabelIcon from '@mui/icons-material/VideoLabel';
 
 const AbsensiScanner: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
@@ -68,29 +71,64 @@ const AbsensiScanner: React.FC = () => {
   const startScanner = async () => {
     setError(null);
     setScanResult(null);
-    setIsScanning(true);
 
-    setTimeout(async () => {
-      if (videoRef.current) {
-        try {
-          scannerRef.current = new QrScanner(
-            videoRef.current,
-            handleScan,
-            {
-              onDecodeError: () => { },
-              highlightScanRegion: true,
-              highlightCodeOutline: true,
-              maxScansPerSecond: 2,
-            }
-          );
-          await scannerRef.current.start();
-        } catch (e) {
-          console.error(e);
-          setError('Gagal mengakses kamera. Pastikan izin kamera diberikan.');
-          setIsScanning(false);
+    // 1. Check if browser supports camera
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError('Kamera tidak didukung pada browser ini. Harap gunakan browser modern.');
+      return;
+    }
+
+    // 2. Check for HTTPS (Secure Context)
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      setError('Akses kamera memerlukan koneksi HTTPS yang aman.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 3. Explicitly request permission first
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setHasPermission(true);
+
+      // Stop the test stream immediately
+      stream.getTracks().forEach(track => track.stop());
+
+      // 4. Start Scanner
+      setIsScanning(true);
+      setTimeout(async () => {
+        if (videoRef.current) {
+          try {
+            scannerRef.current = new QrScanner(
+              videoRef.current,
+              handleScan,
+              {
+                onDecodeError: () => { },
+                highlightScanRegion: true,
+                highlightCodeOutline: true,
+                maxScansPerSecond: 2,
+              }
+            );
+            await scannerRef.current.start();
+          } catch (e) {
+            console.error(e);
+            setError('Gagal memulai scanner. Silakan muat ulang halaman.');
+            setIsScanning(false);
+          }
         }
+      }, 300);
+    } catch (e: any) {
+      console.error('Camera Permission Error:', e);
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        setError('Izin kamera ditolak. Harap berikan izin di pengaturan browser Anda.');
+      } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+        setError('Kamera tidak ditemukan pada perangkat ini.');
+      } else {
+        setError('Gagal mengakses kamera: ' + (e.message || 'Error tidak diketahui'));
       }
-    }, 100);
+      setHasPermission(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const stopScanner = () => {
@@ -176,13 +214,21 @@ const AbsensiScanner: React.FC = () => {
                   Kamera Siap
                 </Typography>
                 <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4, maxWidth: 300 }}>
-                  Pastikan Anda memberikan izin akses kamera untuk melakukan pemindaian.
+                  Gunakan kamera perangkat Anda untuk memindai QR Code kehadiran.
                 </Typography>
+
+                {!window.isSecureContext && window.location.hostname !== 'localhost' && (
+                  <Alert severity="warning" icon={<SecurityIcon />} sx={{ mb: 3, borderRadius: 2 }}>
+                    Akses kamera memerlukan HTTPS.
+                  </Alert>
+                )}
+
                 <Button
                   variant="contained"
+                  disabled={loading}
                   size="large"
                   onClick={startScanner}
-                  startIcon={<CameraswitchIcon />}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CameraswitchIcon />}
                   sx={{
                     borderRadius: 3,
                     py: 1.5,
