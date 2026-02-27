@@ -12,6 +12,7 @@
 Dibangun dengan **Next.js 15**, **TypeScript**, **Material UI**, dan **Framer Motion** — mendukung **PWA**.
 
 [![Backend Repo](https://img.shields.io/badge/📡_Backend_API-absensi--api--qrcode-ec4899?style=for-the-badge)](https://github.com/kzherdinnn/absensi-api-qrcode)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-absensiku.onesite.my.id-10b981?style=for-the-badge)](https://absensiku.onesite.my.id)
 
 </div>
 
@@ -178,6 +179,7 @@ Aplikasi ini mengonsumsi REST API dan WebSocket dari repo backend:
 
 | Layanan | URL |
 |---------|-----|
+| **🌐 Live Demo** | [absensiku.onesite.my.id](https://absensiku.onesite.my.id) |
 | **Frontend App** | [github.com/kzherdinnn/absensi-nextjs-qrcode](https://github.com/kzherdinnn/absensi-nextjs-qrcode) *(repo ini)* |
 | **Backend API** | [github.com/kzherdinnn/absensi-api-qrcode](https://github.com/kzherdinnn/absensi-api-qrcode) |
 
